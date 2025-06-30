@@ -458,3 +458,5 @@ const Bell = ({ className }: { className?: string }) => (
 );
 
 export default RealTimeMonitoringPanel;
+
+export default RealTimeMonitoringPanel
