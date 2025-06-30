@@ -6,16 +6,25 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // Validate that required environment variables are present
 if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('Missing Supabase environment variables:', {
+    url: supabaseUrl ? 'Present' : 'Missing',
+    key: supabaseAnonKey ? 'Present' : 'Missing'
+  });
   throw new Error(
     'Missing Supabase environment variables. Please check your .env file and ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set correctly.'
   );
 }
 
-// Validate URL format
-if (!supabaseUrl.startsWith('https://') || !supabaseUrl.includes('.supabase.co')) {
+// Validate URL format (allow localhost for development)
+if (!supabaseUrl.startsWith('https://') && !supabaseUrl.startsWith('http://localhost')) {
   throw new Error(
     'Invalid Supabase URL format. Please ensure VITE_SUPABASE_URL follows the format: https://your-project-ref.supabase.co'
   );
+}
+
+// Check if using placeholder values
+if (supabaseUrl.includes('your-project-ref') || supabaseAnonKey.includes('your-anon-key')) {
+  console.warn('⚠️  Using placeholder Supabase credentials. Please update your .env file with actual values.');
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {

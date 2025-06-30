@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { User } from '@supabase/supabase-js';
-import { Shield, Mail, Lock, Eye, EyeOff, UserPlus, LogIn, CheckCircle, AlertCircle } from 'lucide-react';
+import { Shield, Mail, Lock, Eye, EyeOff, UserPlus, LogIn, CheckCircle, AlertCircle, AlertTriangle } from 'lucide-react';
 
 interface AuthModuleProps {
   onAuthStateChange: (user: User | null) => void;
@@ -15,16 +15,27 @@ const AuthModule: React.FC<AuthModuleProps> = ({ onAuthStateChange }) => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+  const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' | 'warning' } | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [connectionError, setConnectionError] = useState(false);
 
   useEffect(() => {
     // Check for existing session
     const checkSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session) {
-        setUser(data.session.user);
-        onAuthStateChange(data.session.user);
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (data.session) {
+          setUser(data.session.user);
+          onAuthStateChange(data.session.user);
+          setConnectionError(false);
+        }
+      } catch (error) {
+        console.error('Session check failed:', error);
+        setConnectionError(true);
+        setMessage({
+          text: 'Unable to connect to authentication service. Please check your internet connection and Supabase configuration.',
+          type: 'error'
+        });
       }
     };
 
@@ -36,6 +47,7 @@ const AuthModule: React.FC<AuthModuleProps> = ({ onAuthStateChange }) => {
         if (session) {
           setUser(session.user);
           onAuthStateChange(session.user);
+          setConnectionError(false);
         } else {
           setUser(null);
           onAuthStateChange(null);
@@ -52,6 +64,7 @@ const AuthModule: React.FC<AuthModuleProps> = ({ onAuthStateChange }) => {
     e.preventDefault();
     setLoading(true);
     setMessage(null);
+    setConnectionError(false);
 
     try {
       // Sign up with Supabase
@@ -92,10 +105,18 @@ const AuthModule: React.FC<AuthModuleProps> = ({ onAuthStateChange }) => {
       }
     } catch (error) {
       console.error('Error signing up:', error);
-      setMessage({
-        text: error instanceof Error ? error.message : 'An error occurred during sign up',
-        type: 'error'
-      });
+      if (error instanceof Error && error.message.includes('fetch')) {
+        setConnectionError(true);
+        setMessage({
+          text: 'Connection failed. Please check your internet connection and Supabase configuration.',
+          type: 'error'
+        });
+      } else {
+        setMessage({
+          text: error instanceof Error ? error.message : 'An error occurred during sign up',
+          type: 'error'
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -105,6 +126,7 @@ const AuthModule: React.FC<AuthModuleProps> = ({ onAuthStateChange }) => {
     e.preventDefault();
     setLoading(true);
     setMessage(null);
+    setConnectionError(false);
 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -122,10 +144,18 @@ const AuthModule: React.FC<AuthModuleProps> = ({ onAuthStateChange }) => {
       }
     } catch (error) {
       console.error('Error signing in:', error);
-      setMessage({
-        text: error instanceof Error ? error.message : 'Invalid email or password',
-        type: 'error'
-      });
+      if (error instanceof Error && error.message.includes('fetch')) {
+        setConnectionError(true);
+        setMessage({
+          text: 'Connection failed. Please check your internet connection and Supabase configuration.',
+          type: 'error'
+        });
+      } else {
+        setMessage({
+          text: error instanceof Error ? error.message : 'Invalid email or password',
+          type: 'error'
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -134,6 +164,7 @@ const AuthModule: React.FC<AuthModuleProps> = ({ onAuthStateChange }) => {
   const handleDemoLogin = async () => {
     setLoading(true);
     setMessage(null);
+    setConnectionError(false);
 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -151,10 +182,18 @@ const AuthModule: React.FC<AuthModuleProps> = ({ onAuthStateChange }) => {
       }
     } catch (error) {
       console.error('Error with demo login:', error);
-      setMessage({
-        text: 'Demo login failed. Please try again or use regular sign in.',
-        type: 'error'
-      });
+      if (error instanceof Error && error.message.includes('fetch')) {
+        setConnectionError(true);
+        setMessage({
+          text: 'Connection failed. Please check your Supabase configuration in the .env file.',
+          type: 'error'
+        });
+      } else {
+        setMessage({
+          text: 'Demo login failed. Please try again or use regular sign in.',
+          type: 'error'
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -169,16 +208,29 @@ const AuthModule: React.FC<AuthModuleProps> = ({ onAuthStateChange }) => {
         text: 'Signed out successfully',
         type: 'success'
       });
+      setConnectionError(false);
     } catch (error) {
       console.error('Error signing out:', error);
-      setMessage({
-        text: error instanceof Error ? error.message : 'An error occurred during sign out',
-        type: 'error'
-      });
+      if (error instanceof Error && error.message.includes('fetch')) {
+        setConnectionError(true);
+        setMessage({
+          text: 'Connection failed during sign out. Please check your internet connection.',
+          type: 'error'
+        });
+      } else {
+        setMessage({
+          text: error instanceof Error ? error.message : 'An error occurred during sign out',
+          type: 'error'
+        });
+      }
     } finally {
       setLoading(false);
     }
   };
+
+  // Check if using placeholder credentials
+  const isUsingPlaceholders = import.meta.env.VITE_SUPABASE_URL?.includes('your-project-ref') || 
+                              import.meta.env.VITE_SUPABASE_ANON_KEY?.includes('your-anon-key');
 
   if (user) {
     return (
@@ -209,7 +261,9 @@ const AuthModule: React.FC<AuthModuleProps> = ({ onAuthStateChange }) => {
 
         {message && (
           <div className={`p-3 rounded-md mb-4 ${
-            message.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
+            message.type === 'success' ? 'bg-green-50 text-green-800' : 
+            message.type === 'warning' ? 'bg-yellow-50 text-yellow-800' :
+            'bg-red-50 text-red-800'
           }`}>
             <p className="text-sm">{message.text}</p>
           </div>
@@ -230,9 +284,41 @@ const AuthModule: React.FC<AuthModuleProps> = ({ onAuthStateChange }) => {
       </div>
 
       <div className="p-6">
+        {/* Configuration Warning */}
+        {isUsingPlaceholders && (
+          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+            <div className="flex items-start space-x-3">
+              <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5" />
+              <div>
+                <h3 className="text-sm font-medium text-yellow-800">Configuration Required</h3>
+                <p className="text-sm text-yellow-700 mt-1">
+                  Please update your .env file with actual Supabase credentials. The current values are placeholders.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Connection Error Warning */}
+        {connectionError && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
+            <div className="flex items-start space-x-3">
+              <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
+              <div>
+                <h3 className="text-sm font-medium text-red-800">Connection Error</h3>
+                <p className="text-sm text-red-700 mt-1">
+                  Unable to connect to Supabase. Please check your .env configuration and internet connection.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {message && (
           <div className={`p-3 rounded-md mb-4 ${
-            message.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
+            message.type === 'success' ? 'bg-green-50 text-green-800' : 
+            message.type === 'warning' ? 'bg-yellow-50 text-yellow-800' :
+            'bg-red-50 text-red-800'
           }`}>
             <p className="text-sm">{message.text}</p>
           </div>
@@ -242,7 +328,7 @@ const AuthModule: React.FC<AuthModuleProps> = ({ onAuthStateChange }) => {
         <div className="mb-6">
           <button
             onClick={handleDemoLogin}
-            disabled={loading}
+            disabled={loading || connectionError}
             className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:bg-green-300 disabled:cursor-not-allowed"
           >
             {loading ? (
@@ -355,7 +441,7 @@ const AuthModule: React.FC<AuthModuleProps> = ({ onAuthStateChange }) => {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || connectionError}
             className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed"
           >
             {loading ? (
