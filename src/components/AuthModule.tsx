@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { User } from '@supabase/supabase-js';
-import { Shield, Mail, Lock, Eye, EyeOff, UserPlus, LogIn, CheckCircle, AlertCircle, AlertTriangle, Info } from 'lucide-react';
+import { Shield, Mail, Lock, Eye, EyeOff, UserPlus, LogIn, CheckCircle, AlertCircle, AlertTriangle, Info, Settings } from 'lucide-react';
 
 interface AuthModuleProps {
   onAuthStateChange: (user: User | null) => void;
@@ -92,16 +92,22 @@ const AuthModule: React.FC<AuthModuleProps> = ({ onAuthStateChange }) => {
 
         if (profileError) throw profileError;
 
-        setMessage({
-          text: 'Account created successfully! You can now sign in.',
-          type: 'success'
-        });
-        
-        // Reset form and switch to sign in
-        setEmail('');
-        setPassword('');
-        setFullName('');
-        setIsSignUp(false);
+        if (data.user.email_confirmed_at) {
+          setMessage({
+            text: 'Account created and signed in successfully!',
+            type: 'success'
+          });
+        } else {
+          setMessage({
+            text: 'Account created successfully! Please check your email to confirm your account, or contact your administrator to disable email confirmation.',
+            type: 'warning'
+          });
+          // Reset form and switch to sign in
+          setEmail('');
+          setPassword('');
+          setFullName('');
+          setIsSignUp(false);
+        }
       }
     } catch (error) {
       console.error('Error signing up:', error);
@@ -134,7 +140,12 @@ const AuthModule: React.FC<AuthModuleProps> = ({ onAuthStateChange }) => {
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        if (error.message.includes('Email not confirmed')) {
+          throw new Error('Email not confirmed. Please check your email for a confirmation link, or contact your administrator to disable email confirmation in Supabase settings.');
+        }
+        throw error;
+      }
 
       if (data.user) {
         setMessage({
@@ -167,9 +178,13 @@ const AuthModule: React.FC<AuthModuleProps> = ({ onAuthStateChange }) => {
     setConnectionError(false);
 
     try {
-      // First, try to create the demo user if it doesn't exist
       const demoEmail = 'demo@guardiansentinel.com';
       const demoPassword = 'demo12345';
+
+      setMessage({
+        text: 'Attempting demo login...',
+        type: 'info'
+      });
 
       // Try to sign in first
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
@@ -177,61 +192,68 @@ const AuthModule: React.FC<AuthModuleProps> = ({ onAuthStateChange }) => {
         password: demoPassword,
       });
 
-      if (signInError && signInError.message.includes('Invalid login credentials')) {
-        // Demo user doesn't exist, try to create it
-        setMessage({
-          text: 'Creating demo account... This may take a moment.',
-          type: 'info'
-        });
+      if (signInError) {
+        if (signInError.message.includes('Email not confirmed')) {
+          setMessage({
+            text: 'Demo account exists but email confirmation is required. Please disable email confirmation in your Supabase project settings (Authentication → Settings → Enable Email Confirmations = OFF) to use the demo feature.',
+            type: 'warning'
+          });
+          return;
+        } else if (signInError.message.includes('Invalid login credentials')) {
+          // Demo user doesn't exist, try to create it
+          setMessage({
+            text: 'Creating demo account...',
+            type: 'info'
+          });
 
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email: demoEmail,
-          password: demoPassword,
-        });
-
-        if (signUpError) {
-          throw new Error(`Failed to create demo account: ${signUpError.message}`);
-        }
-
-        if (signUpData.user) {
-          // Insert demo user profile data
-          const { error: profileError } = await supabase
-            .from('users')
-            .insert([
-              {
-                id: signUpData.user.id,
-                email: demoEmail,
-                full_name: 'Demo User',
-                user_type: 'guardian',
-                created_at: new Date(),
-                updated_at: new Date()
-              }
-            ]);
-
-          if (profileError) {
-            console.warn('Profile creation failed:', profileError);
-          }
-
-          // Now try to sign in with the newly created account
-          const { data: newSignInData, error: newSignInError } = await supabase.auth.signInWithPassword({
+          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
             email: demoEmail,
             password: demoPassword,
           });
 
-          if (newSignInError) throw newSignInError;
+          if (signUpError) {
+            throw new Error(`Failed to create demo account: ${signUpError.message}`);
+          }
 
-          if (newSignInData.user) {
+          if (signUpData.user) {
+            // Check if the user was created but needs email confirmation
+            if (!signUpData.user.email_confirmed_at) {
+              setMessage({
+                text: 'Demo account created but requires email confirmation. Please disable email confirmation in your Supabase project settings (Authentication → Settings → Enable Email Confirmations = OFF) to use the demo feature without email verification.',
+                type: 'warning'
+              });
+              return;
+            }
+
+            // Insert demo user profile data
+            const { error: profileError } = await supabase
+              .from('users')
+              .insert([
+                {
+                  id: signUpData.user.id,
+                  email: demoEmail,
+                  full_name: 'Demo User',
+                  user_type: 'guardian',
+                  created_at: new Date(),
+                  updated_at: new Date()
+                }
+              ]);
+
+            if (profileError) {
+              console.warn('Profile creation failed:', profileError);
+            }
+
             setMessage({
               text: 'Demo account created and signed in successfully!',
               type: 'success'
             });
           }
+        } else {
+          throw signInError;
         }
-      } else if (signInError) {
-        throw signInError;
       } else if (signInData.user) {
         setMessage({
-          text: 'Signed in with demo account!',
+          text: 'Signed in with demo account successfully!',
           type: 'success'
         });
       }
@@ -379,7 +401,27 @@ const AuthModule: React.FC<AuthModuleProps> = ({ onAuthStateChange }) => {
           }`}>
             <div className="flex items-start space-x-2">
               {message.type === 'info' && <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />}
+              {message.type === 'warning' && <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />}
+              {message.type === 'error' && <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />}
+              {message.type === 'success' && <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />}
               <p className="text-sm">{message.text}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Email Confirmation Help */}
+        {!isUsingPlaceholders && (
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
+            <div className="flex items-start space-x-3">
+              <Settings className="w-5 h-5 text-blue-600 mt-0.5" />
+              <div>
+                <h3 className="text-sm font-medium text-blue-800">Demo Setup Tip</h3>
+                <p className="text-sm text-blue-700 mt-1">
+                  For seamless demo experience, disable email confirmation in your Supabase project: 
+                  <br />
+                  <strong>Authentication → Settings → Enable Email Confirmations = OFF</strong>
+                </p>
+              </div>
             </div>
           </div>
         )}
@@ -402,12 +444,12 @@ const AuthModule: React.FC<AuthModuleProps> = ({ onAuthStateChange }) => {
             ) : (
               <>
                 <LogIn className="w-5 h-5" />
-                <span>Quick Demo Login (Auto-creates account if needed)</span>
+                <span>Quick Demo Login</span>
               </>
             )}
           </button>
           <p className="text-xs text-gray-500 mt-2 text-center">
-            This will create a demo account automatically if one doesn't exist
+            Creates demo account automatically (requires email confirmation to be disabled)
           </p>
         </div>
 
