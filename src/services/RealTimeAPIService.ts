@@ -6,7 +6,7 @@ import { supabase } from '../lib/supabase';
 // Types for real-time events
 export interface RealTimeEvent {
   id: string;
-  type: 'voice' | 'pose' | 'face' | 'location' | 'biometric' | 'environmental';
+  type: 'voice' | 'pose' | 'face' | 'location' | 'biometric' | 'environmental' | 'emergency';
   data: any;
   timestamp: Date;
   priority: 'low' | 'medium' | 'high' | 'critical';
@@ -52,6 +52,7 @@ class RealTimeAPIService {
     this.eventProcessors.set('location', this.processLocationEvent.bind(this));
     this.eventProcessors.set('biometric', this.processBiometricEvent.bind(this));
     this.eventProcessors.set('environmental', this.processEnvironmentalEvent.bind(this));
+    this.eventProcessors.set('emergency', this.processEmergencyEvent.bind(this));
   }
 
   async connect(): Promise<boolean> {
@@ -367,6 +368,17 @@ class RealTimeAPIService {
     };
   }
 
+  private async processEmergencyEvent(data: any): Promise<any> {
+    console.log('Processing emergency event:', data);
+    // In a real implementation, this would process emergency data
+    return {
+      ...data,
+      processed: true,
+      responseInitiated: true,
+      responseTime: Math.floor(Math.random() * 10) + 1
+    };
+  }
+
   private handleIncomingEvent(event: RealTimeEvent): void {
     console.log(`📥 Received ${event.type} event with priority ${event.priority}`);
     
@@ -535,6 +547,14 @@ class RealTimeAPIService {
       environmental: {
         air_quality_index: Math.random() > 0.9 ? 150 + Math.random() * 100 : 50 + Math.random() * 50,
         noise_pollution_level: Math.random() > 0.9 ? 80 + Math.random() * 20 : 40 + Math.random() * 30
+      },
+      emergency: {
+        type: ['manual', 'audio_trigger', 'biometric', 'location'][Math.floor(Math.random() * 4)],
+        location: {
+          lat: 40.7128 + (Math.random() - 0.5) * 0.01,
+          lng: -74.0060 + (Math.random() - 0.5) * 0.01
+        },
+        timestamp: new Date()
       }
     };
     

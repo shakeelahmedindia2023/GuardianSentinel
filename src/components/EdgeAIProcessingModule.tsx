@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Cpu, Zap, Smartphone, Wifi, WifiOff, BarChart3, RefreshCw, Check, Clock, Shield } from 'lucide-react';
+import { Cpu, Zap, Smartphone, Wifi, WifiOff, BarChart3, RefreshCw, Check, Clock, Shield, X } from 'lucide-react';
 
 interface ProcessingMetrics {
   edgeLatency: number;

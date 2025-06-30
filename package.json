@@ -11,15 +11,15 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
+    "axios": "^1.6.2",
+    "date-fns": "^2.30.0",
     "lucide-react": "^0.344.0",
+    "pusher-js": "^8.3.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "recharts": "^2.8.0",
     "socket.io-client": "^4.7.2",
-    "pusher-js": "^8.3.0",
-    "axios": "^1.6.2",
-    "uuid": "^9.0.1",
-    "date-fns": "^2.30.0"
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Brain, Eye, MapPin, Activity, BarChart3, Mic, Camera, Heart, AlertTriangle, Navigation, Globe, Users, Settings, Atom, ClipboardList, FileText, Rocket, Zap } from 'lucide-react';
+import { Shield, Brain, Eye, MapPin, Activity, BarChart3, Mic, Camera, Heart, AlertTriangle, Navigation, Globe, Users, Settings, Atom, ClipboardList, FileText, Rocket, Zap, Bell } from 'lucide-react';
 import LiveMapModule from './LiveMapModule';
 import EmergencyButtonModule from './EmergencyButtonModule';
 import VoiceGuardianModule from './VoiceGuardianModule';
@@ -16,6 +16,9 @@ import AnalyticsReportPanel from './AnalyticsReportPanel';
 import SafetyPlanningModule from './SafetyPlanningModule';
 import RealTimeMonitoringPanel from './RealTimeMonitoringPanel';
 import DeploymentPanel from './DeploymentPanel';
+import AIFeatureShowcase from './AIFeatureShowcase';
+import AdvancedNeuralNetworkVisualizer from './AdvancedNeuralNetworkVisualizer';
+import EdgeAIProcessingModule from './EdgeAIProcessingModule';
 import { RealtimeOrchestrator } from '../services/RealtimeOrchestrator';
 import RealTimeAPIService from '../services/RealTimeAPIService';
 
@@ -366,32 +369,13 @@ const OverviewTab: React.FC = () => (
     <RealTimeMonitoringPanel />
 
     {/* AI Features Showcase */}
-    <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-6 text-white">
-      <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold mb-2">🧠 Real-time AI Security Modules</h2>
-        <p className="text-blue-100">Cutting-edge artificial intelligence protecting those who matter most</p>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 transform hover:scale-105 transition-transform">
-          <div className="text-xl mb-2">🎤</div>
-          <h3 className="font-bold mb-1">VoiceGuardian AI</h3>
-          <p className="text-blue-100 text-sm">Real-time emotion detection and grooming pattern recognition</p>
-        </div>
-        
-        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 transform hover:scale-105 transition-transform">
-          <div className="text-xl mb-2">🧍‍♂️</div>
-          <h3 className="font-bold mb-1">Pose & Threat AI</h3>
-          <p className="text-blue-100 text-sm">Advanced body language analysis and threat detection</p>
-        </div>
-        
-        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 transform hover:scale-105 transition-transform">
-          <div className="text-xl mb-2">📊</div>
-          <h3 className="font-bold mb-1">Risk Scoring Engine</h3>
-          <p className="text-blue-100 text-sm">Real-time cumulative threat assessment</p>
-        </div>
-      </div>
-    </div>
+    <AIFeatureShowcase />
+
+    {/* Neural Network Visualizer */}
+    <AdvancedNeuralNetworkVisualizer />
+
+    {/* Edge AI Processing */}
+    <EdgeAIProcessingModule />
   </div>
 );
 
