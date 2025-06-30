@@ -41,9 +41,9 @@ export class LocationService {
         },
         (error) => {
           console.error('Location error:', error);
-          // Fallback to mock location for demo
+          // Start mock tracking for demo but still reject the promise
           this.startMockTracking();
-          resolve();
+          reject(error);
         },
         options
       );
