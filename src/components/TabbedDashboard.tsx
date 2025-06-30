@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Brain, Eye, MapPin, Activity, BarChart3, Mic, Camera, Heart, AlertTriangle, Navigation, Globe, Users, Settings, Atom, ClipboardList, FileText, Rocket, Zap, Bell } from 'lucide-react';
+import { Shield, Brain, Eye, MapPin, Activity, BarChart3, Mic, Camera, Heart, AlertTriangle, Navigation, Globe, Users, Settings, Atom, ClipboardList, FileText, Rocket, Zap, Bell, LogOut, User as UserIcon } from 'lucide-react';
 import LiveMapModule from './LiveMapModule';
 import EmergencyButtonModule from './EmergencyButtonModule';
 import VoiceGuardianModule from './VoiceGuardianModule';
@@ -19,8 +19,10 @@ import DeploymentPanel from './DeploymentPanel';
 import AIFeatureShowcase from './AIFeatureShowcase';
 import AdvancedNeuralNetworkVisualizer from './AdvancedNeuralNetworkVisualizer';
 import EdgeAIProcessingModule from './EdgeAIProcessingModule';
+import UserProfile from './UserProfile';
 import { RealtimeOrchestrator } from '../services/RealtimeOrchestrator';
 import RealTimeAPIService from '../services/RealTimeAPIService';
+import { supabase } from '../lib/supabase';
 
 interface Tab {
   id: string;
@@ -34,8 +36,17 @@ const TabbedDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [systemStatus, setSystemStatus] = useState<any>(null);
   const [alerts, setAlerts] = useState(0);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
+    // Get current user
+    const getUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      setUser(data.user);
+    };
+    
+    getUser();
+    
     // Initialize the real-time orchestrator
     const orchestrator = RealtimeOrchestrator.getInstance();
     
@@ -73,6 +84,10 @@ const TabbedDashboard: React.FC = () => {
       realTimeAPI.disconnect();
     };
   }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+  };
 
   const tabs: Tab[] = [
     {
@@ -143,10 +158,10 @@ const TabbedDashboard: React.FC = () => {
       component: DeploymentTab
     },
     {
-      id: 'settings',
-      name: 'Settings',
-      icon: Settings,
-      component: SettingsTab
+      id: 'profile',
+      name: 'Profile',
+      icon: UserIcon,
+      component: ProfileTab
     }
   ];
 
@@ -186,10 +201,18 @@ const TabbedDashboard: React.FC = () => {
                 <span className="text-xs font-medium text-green-700">All Systems Operational</span>
               </div>
               
-              <div className="text-xs text-gray-600">
-                <div className="font-medium">{new Date().toLocaleDateString()}</div>
-                <div className="text-xs">{new Date().toLocaleTimeString()}</div>
-              </div>
+              {user && (
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-gray-600">{user.email}</span>
+                  <button 
+                    onClick={handleSignOut}
+                    className="p-1 rounded-full hover:bg-gray-100"
+                    title="Sign Out"
+                  >
+                    <LogOut className="w-4 h-4 text-gray-500" />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -365,9 +388,6 @@ const OverviewTab: React.FC = () => (
       </div>
     </div>
 
-    {/* Real-Time Monitoring Panel */}
-    <RealTimeMonitoringPanel />
-
     {/* AI Features Showcase */}
     <AIFeatureShowcase />
 
@@ -447,10 +467,10 @@ const DeploymentTab: React.FC = () => (
   </div>
 );
 
-// Settings Tab Component
-const SettingsTab: React.FC = () => (
+// Profile Tab Component
+const ProfileTab: React.FC = () => (
   <div className="space-y-6">
-    <UserSettingsPanel />
+    <UserProfile />
   </div>
 );
 
