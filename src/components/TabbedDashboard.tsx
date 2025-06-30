@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Brain, Eye, MapPin, Activity, BarChart3, Mic, Camera, Heart, AlertTriangle, Navigation, Globe, Users, Settings, Atom, ClipboardList, FileText } from 'lucide-react';
+import { Shield, Brain, Eye, MapPin, Activity, BarChart3, Mic, Camera, Heart, AlertTriangle, Navigation, Globe, Users, Settings, Atom, ClipboardList, FileText, Rocket, Zap } from 'lucide-react';
 import LiveMapModule from './LiveMapModule';
 import EmergencyButtonModule from './EmergencyButtonModule';
 import VoiceGuardianModule from './VoiceGuardianModule';
@@ -14,7 +14,10 @@ import AdvancedFeaturesTab from './AdvancedFeaturesTab';
 import UserSettingsPanel from './UserSettingsPanel';
 import AnalyticsReportPanel from './AnalyticsReportPanel';
 import SafetyPlanningModule from './SafetyPlanningModule';
+import RealTimeMonitoringPanel from './RealTimeMonitoringPanel';
+import DeploymentPanel from './DeploymentPanel';
 import { RealtimeOrchestrator } from '../services/RealtimeOrchestrator';
+import RealTimeAPIService from '../services/RealTimeAPIService';
 
 interface Tab {
   id: string;
@@ -33,10 +36,17 @@ const TabbedDashboard: React.FC = () => {
     // Initialize the real-time orchestrator
     const orchestrator = RealtimeOrchestrator.getInstance();
     
+    // Initialize the real-time API service
+    const realTimeAPI = RealTimeAPIService.getInstance();
+    
     const initializeRealtime = async () => {
       console.log('🚀 Guardian Sentinel Advanced AI Platform Initializing...');
       
       try {
+        // Connect to real-time APIs
+        await realTimeAPI.connect();
+        
+        // Start real-time monitoring
         await orchestrator.startRealtimeMonitoring();
         console.log('✅ Real-time monitoring fully operational');
         
@@ -57,6 +67,7 @@ const TabbedDashboard: React.FC = () => {
     
     return () => {
       orchestrator.stopRealtimeMonitoring();
+      realTimeAPI.disconnect();
     };
   }, []);
 
@@ -115,6 +126,18 @@ const TabbedDashboard: React.FC = () => {
       name: 'Safety Planning',
       icon: ClipboardList,
       component: PlanningTab
+    },
+    {
+      id: 'realtime',
+      name: 'Real-Time API',
+      icon: Zap,
+      component: RealTimeTab
+    },
+    {
+      id: 'deployment',
+      name: 'Deployment',
+      icon: Rocket,
+      component: DeploymentTab
     },
     {
       id: 'settings',
@@ -339,6 +362,9 @@ const OverviewTab: React.FC = () => (
       </div>
     </div>
 
+    {/* Real-Time Monitoring Panel */}
+    <RealTimeMonitoringPanel />
+
     {/* AI Features Showcase */}
     <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-6 text-white">
       <div className="text-center mb-6">
@@ -420,6 +446,20 @@ const AnalyticsTab: React.FC = () => (
 const PlanningTab: React.FC = () => (
   <div className="space-y-6">
     <SafetyPlanningModule />
+  </div>
+);
+
+// Real-Time API Tab Component
+const RealTimeTab: React.FC = () => (
+  <div className="space-y-6">
+    <RealTimeMonitoringPanel />
+  </div>
+);
+
+// Deployment Tab Component
+const DeploymentTab: React.FC = () => (
+  <div className="space-y-6">
+    <DeploymentPanel />
   </div>
 );
 
