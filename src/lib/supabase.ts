@@ -1,7 +1,22 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://vduusuucucxombazrbed.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkdXVzdXVjdWN4b21iYXpyYmVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEyOTUwODksImV4cCI6MjA2Njg3MTA4OX0.B4qvCj2FchCpKJSP2seMA4aYdo1NLAjMyNer6xbOtW8';
+// Get environment variables with validation
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+// Validate that required environment variables are present
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error(
+    'Missing Supabase environment variables. Please check your .env file and ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set correctly.'
+  );
+}
+
+// Validate URL format
+if (!supabaseUrl.startsWith('https://') || !supabaseUrl.includes('.supabase.co')) {
+  throw new Error(
+    'Invalid Supabase URL format. Please ensure VITE_SUPABASE_URL follows the format: https://your-project-ref.supabase.co'
+  );
+}
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
