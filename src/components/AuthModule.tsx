@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { User } from '@supabase/supabase-js';
-import { Shield, Mail, Lock, Eye, EyeOff, UserPlus, LogIn, CheckCircle, AlertCircle, AlertTriangle } from 'lucide-react';
+import { Shield, Mail, Lock, Eye, EyeOff, UserPlus, LogIn, CheckCircle, AlertCircle, AlertTriangle, Info } from 'lucide-react';
 
 interface AuthModuleProps {
   onAuthStateChange: (user: User | null) => void;
@@ -15,7 +15,7 @@ const AuthModule: React.FC<AuthModuleProps> = ({ onAuthStateChange }) => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' | 'warning' } | null>(null);
+  const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [connectionError, setConnectionError] = useState(false);
 
@@ -167,14 +167,69 @@ const AuthModule: React.FC<AuthModuleProps> = ({ onAuthStateChange }) => {
     setConnectionError(false);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: 'demo@guardiansentinel.com',
-        password: 'demo12345',
+      // First, try to create the demo user if it doesn't exist
+      const demoEmail = 'demo@guardiansentinel.com';
+      const demoPassword = 'demo12345';
+
+      // Try to sign in first
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: demoEmail,
+        password: demoPassword,
       });
 
-      if (error) throw error;
+      if (signInError && signInError.message.includes('Invalid login credentials')) {
+        // Demo user doesn't exist, try to create it
+        setMessage({
+          text: 'Creating demo account... This may take a moment.',
+          type: 'info'
+        });
 
-      if (data.user) {
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email: demoEmail,
+          password: demoPassword,
+        });
+
+        if (signUpError) {
+          throw new Error(`Failed to create demo account: ${signUpError.message}`);
+        }
+
+        if (signUpData.user) {
+          // Insert demo user profile data
+          const { error: profileError } = await supabase
+            .from('users')
+            .insert([
+              {
+                id: signUpData.user.id,
+                email: demoEmail,
+                full_name: 'Demo User',
+                user_type: 'guardian',
+                created_at: new Date(),
+                updated_at: new Date()
+              }
+            ]);
+
+          if (profileError) {
+            console.warn('Profile creation failed:', profileError);
+          }
+
+          // Now try to sign in with the newly created account
+          const { data: newSignInData, error: newSignInError } = await supabase.auth.signInWithPassword({
+            email: demoEmail,
+            password: demoPassword,
+          });
+
+          if (newSignInError) throw newSignInError;
+
+          if (newSignInData.user) {
+            setMessage({
+              text: 'Demo account created and signed in successfully!',
+              type: 'success'
+            });
+          }
+        }
+      } else if (signInError) {
+        throw signInError;
+      } else if (signInData.user) {
         setMessage({
           text: 'Signed in with demo account!',
           type: 'success'
@@ -190,7 +245,7 @@ const AuthModule: React.FC<AuthModuleProps> = ({ onAuthStateChange }) => {
         });
       } else {
         setMessage({
-          text: 'Demo login failed. Please try again or use regular sign in.',
+          text: `Demo login failed: ${error instanceof Error ? error.message : 'Unknown error'}. Please try creating a regular account or check your Supabase configuration.`,
           type: 'error'
         });
       }
@@ -263,6 +318,7 @@ const AuthModule: React.FC<AuthModuleProps> = ({ onAuthStateChange }) => {
           <div className={`p-3 rounded-md mb-4 ${
             message.type === 'success' ? 'bg-green-50 text-green-800' : 
             message.type === 'warning' ? 'bg-yellow-50 text-yellow-800' :
+            message.type === 'info' ? 'bg-blue-50 text-blue-800' :
             'bg-red-50 text-red-800'
           }`}>
             <p className="text-sm">{message.text}</p>
@@ -318,9 +374,13 @@ const AuthModule: React.FC<AuthModuleProps> = ({ onAuthStateChange }) => {
           <div className={`p-3 rounded-md mb-4 ${
             message.type === 'success' ? 'bg-green-50 text-green-800' : 
             message.type === 'warning' ? 'bg-yellow-50 text-yellow-800' :
+            message.type === 'info' ? 'bg-blue-50 text-blue-800' :
             'bg-red-50 text-red-800'
           }`}>
-            <p className="text-sm">{message.text}</p>
+            <div className="flex items-start space-x-2">
+              {message.type === 'info' && <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />}
+              <p className="text-sm">{message.text}</p>
+            </div>
           </div>
         )}
 
@@ -337,15 +397,18 @@ const AuthModule: React.FC<AuthModuleProps> = ({ onAuthStateChange }) => {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                <span>Signing In...</span>
+                <span>Processing...</span>
               </>
             ) : (
               <>
                 <LogIn className="w-5 h-5" />
-                <span>Quick Demo Login (No Sign Up Required)</span>
+                <span>Quick Demo Login (Auto-creates account if needed)</span>
               </>
             )}
           </button>
+          <p className="text-xs text-gray-500 mt-2 text-center">
+            This will create a demo account automatically if one doesn't exist
+          </p>
         </div>
 
         <div className="relative mb-6">
