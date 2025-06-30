@@ -1,31 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Get environment variables with validation
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-// Validate that required environment variables are present
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Missing Supabase environment variables:', {
-    url: supabaseUrl ? 'Present' : 'Missing',
-    key: supabaseAnonKey ? 'Present' : 'Missing'
-  });
-  throw new Error(
-    'Missing Supabase environment variables. Please check your .env file and ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set correctly.'
-  );
-}
-
-// Validate URL format (allow localhost for development)
-if (!supabaseUrl.startsWith('https://') && !supabaseUrl.startsWith('http://localhost')) {
-  throw new Error(
-    'Invalid Supabase URL format. Please ensure VITE_SUPABASE_URL follows the format: https://your-project-ref.supabase.co'
-  );
-}
-
-// Check if using placeholder values
-if (supabaseUrl.includes('your-project-ref') || supabaseAnonKey.includes('your-anon-key')) {
-  console.warn('⚠️  Using placeholder Supabase credentials. Please update your .env file with actual values.');
-}
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://vduusuucucxombazrbed.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkdXVzdXVjdWN4b21iYXpyYmVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE2ODY4NTAyNTEsImV4cCI6MjAwMjQyNjI1MX0.qDPJUVP_-B-eTvTQEXZDYgXA0NxRzZAJMObY7P5LqMI';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {

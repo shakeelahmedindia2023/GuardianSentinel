@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { User } from '@supabase/supabase-js';
-import { Shield, Mail, Lock, Eye, EyeOff, UserPlus, LogIn, CheckCircle, AlertCircle, AlertTriangle, Info, Settings } from 'lucide-react';
+import { Shield, Mail, Lock, Eye, EyeOff, UserPlus, LogIn, CheckCircle, AlertCircle } from 'lucide-react';
 
 interface AuthModuleProps {
   onAuthStateChange: (user: User | null) => void;
@@ -15,27 +15,16 @@ const AuthModule: React.FC<AuthModuleProps> = ({ onAuthStateChange }) => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null);
+  const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [connectionError, setConnectionError] = useState(false);
 
   useEffect(() => {
     // Check for existing session
     const checkSession = async () => {
-      try {
-        const { data } = await supabase.auth.getSession();
-        if (data.session) {
-          setUser(data.session.user);
-          onAuthStateChange(data.session.user);
-          setConnectionError(false);
-        }
-      } catch (error) {
-        console.error('Session check failed:', error);
-        setConnectionError(true);
-        setMessage({
-          text: 'Unable to connect to authentication service. Please check your internet connection and Supabase configuration.',
-          type: 'error'
-        });
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        setUser(data.session.user);
+        onAuthStateChange(data.session.user);
       }
     };
 
@@ -47,7 +36,6 @@ const AuthModule: React.FC<AuthModuleProps> = ({ onAuthStateChange }) => {
         if (session) {
           setUser(session.user);
           onAuthStateChange(session.user);
-          setConnectionError(false);
         } else {
           setUser(null);
           onAuthStateChange(null);
@@ -64,7 +52,6 @@ const AuthModule: React.FC<AuthModuleProps> = ({ onAuthStateChange }) => {
     e.preventDefault();
     setLoading(true);
     setMessage(null);
-    setConnectionError(false);
 
     try {
       // Sign up with Supabase
@@ -92,37 +79,23 @@ const AuthModule: React.FC<AuthModuleProps> = ({ onAuthStateChange }) => {
 
         if (profileError) throw profileError;
 
-        if (data.user.email_confirmed_at) {
-          setMessage({
-            text: 'Account created and signed in successfully!',
-            type: 'success'
-          });
-        } else {
-          setMessage({
-            text: 'Account created successfully! Please check your email to confirm your account, or contact your administrator to disable email confirmation.',
-            type: 'warning'
-          });
-          // Reset form and switch to sign in
-          setEmail('');
-          setPassword('');
-          setFullName('');
-          setIsSignUp(false);
-        }
+        setMessage({
+          text: 'Account created successfully! You can now sign in.',
+          type: 'success'
+        });
+        
+        // Reset form and switch to sign in
+        setEmail('');
+        setPassword('');
+        setFullName('');
+        setIsSignUp(false);
       }
     } catch (error) {
       console.error('Error signing up:', error);
-      if (error instanceof Error && error.message.includes('fetch')) {
-        setConnectionError(true);
-        setMessage({
-          text: 'Connection failed. Please check your internet connection and Supabase configuration.',
-          type: 'error'
-        });
-      } else {
-        setMessage({
-          text: error instanceof Error ? error.message : 'An error occurred during sign up',
-          type: 'error'
-        });
-      }
+      setMessage({
+        text: error instanceof Error ? error.message : 'An error occurred during sign up',
+        type: 'error'
+      });
     } finally {
       setLoading(false);
     }
@@ -132,7 +105,6 @@ const AuthModule: React.FC<AuthModuleProps> = ({ onAuthStateChange }) => {
     e.preventDefault();
     setLoading(true);
     setMessage(null);
-    setConnectionError(false);
 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -140,12 +112,7 @@ const AuthModule: React.FC<AuthModuleProps> = ({ onAuthStateChange }) => {
         password,
       });
 
-      if (error) {
-        if (error.message.includes('Email not confirmed')) {
-          throw new Error('Email not confirmed. Please check your email for a confirmation link, or contact your administrator to disable email confirmation in Supabase settings.');
-        }
-        throw error;
-      }
+      if (error) throw error;
 
       if (data.user) {
         setMessage({
@@ -155,18 +122,10 @@ const AuthModule: React.FC<AuthModuleProps> = ({ onAuthStateChange }) => {
       }
     } catch (error) {
       console.error('Error signing in:', error);
-      if (error instanceof Error && error.message.includes('fetch')) {
-        setConnectionError(true);
-        setMessage({
-          text: 'Connection failed. Please check your internet connection and Supabase configuration.',
-          type: 'error'
-        });
-      } else {
-        setMessage({
-          text: error instanceof Error ? error.message : 'Invalid email or password',
-          type: 'error'
-        });
-      }
+      setMessage({
+        text: error instanceof Error ? error.message : 'Invalid email or password',
+        type: 'error'
+      });
     } finally {
       setLoading(false);
     }
@@ -175,102 +134,27 @@ const AuthModule: React.FC<AuthModuleProps> = ({ onAuthStateChange }) => {
   const handleDemoLogin = async () => {
     setLoading(true);
     setMessage(null);
-    setConnectionError(false);
 
     try {
-      const demoEmail = 'demo@guardiansentinel.com';
-      const demoPassword = 'demo12345';
-
-      setMessage({
-        text: 'Attempting demo login...',
-        type: 'info'
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: 'demo@guardiansentinel.com',
+        password: 'demo12345',
       });
 
-      // Try to sign in first
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-        email: demoEmail,
-        password: demoPassword,
-      });
+      if (error) throw error;
 
-      if (signInError) {
-        if (signInError.message.includes('Email not confirmed')) {
-          setMessage({
-            text: 'Demo account exists but email confirmation is required. Please disable email confirmation in your Supabase project settings (Authentication → Settings → Enable Email Confirmations = OFF) to use the demo feature.',
-            type: 'warning'
-          });
-          return;
-        } else if (signInError.message.includes('Invalid login credentials')) {
-          // Demo user doesn't exist, try to create it
-          setMessage({
-            text: 'Creating demo account...',
-            type: 'info'
-          });
-
-          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-            email: demoEmail,
-            password: demoPassword,
-          });
-
-          if (signUpError) {
-            throw new Error(`Failed to create demo account: ${signUpError.message}`);
-          }
-
-          if (signUpData.user) {
-            // Check if the user was created but needs email confirmation
-            if (!signUpData.user.email_confirmed_at) {
-              setMessage({
-                text: 'Demo account created but requires email confirmation. Please disable email confirmation in your Supabase project settings (Authentication → Settings → Enable Email Confirmations = OFF) to use the demo feature without email verification.',
-                type: 'warning'
-              });
-              return;
-            }
-
-            // Insert demo user profile data
-            const { error: profileError } = await supabase
-              .from('users')
-              .insert([
-                {
-                  id: signUpData.user.id,
-                  email: demoEmail,
-                  full_name: 'Demo User',
-                  user_type: 'guardian',
-                  created_at: new Date(),
-                  updated_at: new Date()
-                }
-              ]);
-
-            if (profileError) {
-              console.warn('Profile creation failed:', profileError);
-            }
-
-            setMessage({
-              text: 'Demo account created and signed in successfully!',
-              type: 'success'
-            });
-          }
-        } else {
-          throw signInError;
-        }
-      } else if (signInData.user) {
+      if (data.user) {
         setMessage({
-          text: 'Signed in with demo account successfully!',
+          text: 'Signed in with demo account!',
           type: 'success'
         });
       }
     } catch (error) {
       console.error('Error with demo login:', error);
-      if (error instanceof Error && error.message.includes('fetch')) {
-        setConnectionError(true);
-        setMessage({
-          text: 'Connection failed. Please check your Supabase configuration in the .env file.',
-          type: 'error'
-        });
-      } else {
-        setMessage({
-          text: `Demo login failed: ${error instanceof Error ? error.message : 'Unknown error'}. Please try creating a regular account or check your Supabase configuration.`,
-          type: 'error'
-        });
-      }
+      setMessage({
+        text: 'Demo login failed. Please try again or use regular sign in.',
+        type: 'error'
+      });
     } finally {
       setLoading(false);
     }
@@ -285,29 +169,16 @@ const AuthModule: React.FC<AuthModuleProps> = ({ onAuthStateChange }) => {
         text: 'Signed out successfully',
         type: 'success'
       });
-      setConnectionError(false);
     } catch (error) {
       console.error('Error signing out:', error);
-      if (error instanceof Error && error.message.includes('fetch')) {
-        setConnectionError(true);
-        setMessage({
-          text: 'Connection failed during sign out. Please check your internet connection.',
-          type: 'error'
-        });
-      } else {
-        setMessage({
-          text: error instanceof Error ? error.message : 'An error occurred during sign out',
-          type: 'error'
-        });
-      }
+      setMessage({
+        text: error instanceof Error ? error.message : 'An error occurred during sign out',
+        type: 'error'
+      });
     } finally {
       setLoading(false);
     }
   };
-
-  // Check if using placeholder credentials
-  const isUsingPlaceholders = import.meta.env.VITE_SUPABASE_URL?.includes('your-project-ref') || 
-                              import.meta.env.VITE_SUPABASE_ANON_KEY?.includes('your-anon-key');
 
   if (user) {
     return (
@@ -338,10 +209,7 @@ const AuthModule: React.FC<AuthModuleProps> = ({ onAuthStateChange }) => {
 
         {message && (
           <div className={`p-3 rounded-md mb-4 ${
-            message.type === 'success' ? 'bg-green-50 text-green-800' : 
-            message.type === 'warning' ? 'bg-yellow-50 text-yellow-800' :
-            message.type === 'info' ? 'bg-blue-50 text-blue-800' :
-            'bg-red-50 text-red-800'
+            message.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
           }`}>
             <p className="text-sm">{message.text}</p>
           </div>
@@ -362,105 +230,13 @@ const AuthModule: React.FC<AuthModuleProps> = ({ onAuthStateChange }) => {
       </div>
 
       <div className="p-6">
-        {/* Configuration Warning */}
-        {isUsingPlaceholders && (
-          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-            <div className="flex items-start space-x-3">
-              <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5" />
-              <div>
-                <h3 className="text-sm font-medium text-yellow-800">Configuration Required</h3>
-                <p className="text-sm text-yellow-700 mt-1">
-                  Please update your .env file with actual Supabase credentials. The current values are placeholders.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Connection Error Warning */}
-        {connectionError && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
-            <div className="flex items-start space-x-3">
-              <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
-              <div>
-                <h3 className="text-sm font-medium text-red-800">Connection Error</h3>
-                <p className="text-sm text-red-700 mt-1">
-                  Unable to connect to Supabase. Please check your .env configuration and internet connection.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
         {message && (
           <div className={`p-3 rounded-md mb-4 ${
-            message.type === 'success' ? 'bg-green-50 text-green-800' : 
-            message.type === 'warning' ? 'bg-yellow-50 text-yellow-800' :
-            message.type === 'info' ? 'bg-blue-50 text-blue-800' :
-            'bg-red-50 text-red-800'
+            message.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
           }`}>
-            <div className="flex items-start space-x-2">
-              {message.type === 'info' && <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />}
-              {message.type === 'warning' && <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />}
-              {message.type === 'error' && <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />}
-              {message.type === 'success' && <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />}
-              <p className="text-sm">{message.text}</p>
-            </div>
+            <p className="text-sm">{message.text}</p>
           </div>
         )}
-
-        {/* Email Confirmation Help */}
-        {!isUsingPlaceholders && (
-          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
-            <div className="flex items-start space-x-3">
-              <Settings className="w-5 h-5 text-blue-600 mt-0.5" />
-              <div>
-                <h3 className="text-sm font-medium text-blue-800">Demo Setup Tip</h3>
-                <p className="text-sm text-blue-700 mt-1">
-                  For seamless demo experience, disable email confirmation in your Supabase project: 
-                  <br />
-                  <strong>Authentication → Settings → Enable Email Confirmations = OFF</strong>
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Demo Login Button - Placed at the top for direct access */}
-        <div className="mb-6">
-          <button
-            onClick={handleDemoLogin}
-            disabled={loading || connectionError}
-            className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:bg-green-300 disabled:cursor-not-allowed"
-          >
-            {loading ? (
-              <>
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <span>Processing...</span>
-              </>
-            ) : (
-              <>
-                <LogIn className="w-5 h-5" />
-                <span>Quick Demo Login</span>
-              </>
-            )}
-          </button>
-          <p className="text-xs text-gray-500 mt-2 text-center">
-            Creates demo account automatically (requires email confirmation to be disabled)
-          </p>
-        </div>
-
-        <div className="relative mb-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-300"></div>
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white text-gray-500">Or use email and password</span>
-          </div>
-        </div>
 
         <form onSubmit={isSignUp ? handleSignUp : handleSignIn} className="space-y-4">
           {isSignUp && (
@@ -546,7 +322,7 @@ const AuthModule: React.FC<AuthModuleProps> = ({ onAuthStateChange }) => {
 
           <button
             type="submit"
-            disabled={loading || connectionError}
+            disabled={loading}
             className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed"
           >
             {loading ? (
@@ -574,6 +350,32 @@ const AuthModule: React.FC<AuthModuleProps> = ({ onAuthStateChange }) => {
             )}
           </button>
         </form>
+
+        {/* Demo Login Button */}
+        {!isSignUp && (
+          <div className="mt-4">
+            <button
+              onClick={handleDemoLogin}
+              disabled={loading}
+              className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:bg-green-300 disabled:cursor-not-allowed"
+            >
+              {loading ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span>Signing In...</span>
+                </>
+              ) : (
+                <>
+                  <LogIn className="w-5 h-5" />
+                  <span>Demo Login (No Sign Up Required)</span>
+                </>
+              )}
+            </button>
+          </div>
+        )}
 
         <div className="mt-6 text-center">
           <button
