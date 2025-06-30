@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart3, PieChart, LineChart, Calendar, Download, Filter, Clock, Shield, AlertTriangle, Map, Activity, Mic, Camera, Heart, RefreshCw } from 'lucide-react';
+import { BarChart3, PieChart, LineChart, Calendar, Download, Filter, Clock, Shield, AlertTriangle, Map, Activity, Mic, Camera, Heart, RefreshCw, Bell } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart as RechartPieChart, Pie, Cell, LineChart as RechartLineChart, Line } from 'recharts';
 
 const AnalyticsReportPanel: React.FC = () => {
@@ -684,7 +684,7 @@ const AnalyticsReportPanel: React.FC = () => {
                     <h3 className="text-lg font-medium text-gray-900 mb-4">Movement Patterns</h3>
                     <div className="h-64">
                       <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
+                        <RechartPieChart>
                           <Pie
                             data={[
                               { name: 'Walking', value: 45 },
@@ -705,7 +705,7 @@ const AnalyticsReportPanel: React.FC = () => {
                             ))}
                           </Pie>
                           <Tooltip />
-                        </PieChart>
+                        </RechartPieChart>
                       </ResponsiveContainer>
                     </div>
                   </div>
